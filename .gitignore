@@ -37,4 +37,13 @@
 /app/assets/builds/*
 !/app/assets/builds/.keep
 
+# Ignore yarn and node modules
 /node_modules
+yarn-error.log
+yarn-debug.log*
+.yarn-integrity
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
