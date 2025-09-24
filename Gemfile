@@ -20,6 +20,7 @@ gem "cssbundling-rails"
 gem "jbuilder"
 # Provides a simple and extremely flexible way to upload files [https://github.com/carrierwaveuploader/carrierwave]
 gem "carrierwave"
+gem "simple_form"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
