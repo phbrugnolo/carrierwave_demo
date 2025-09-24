@@ -1,2 +1,7 @@
 @import 'bootstrap/scss/bootstrap';
 @import 'bootstrap-icons/font/bootstrap-icons';
+
+// Helper class used by custom multiple file uploader drag zone
+.border-dashed {
+	border-style: dashed !important;
+}
