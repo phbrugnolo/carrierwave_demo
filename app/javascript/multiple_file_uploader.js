@@ -279,7 +279,6 @@ export const MultipleFileUploader = () => {
 
       const header = document.createElement("p");
       header.className = "mb-2 fw-semibold";
-      header.textContent = `${t.selected_label}: ${selectedFiles.length} – ${formatBytes(totalSize)}`;
       selectedFilesContainer.appendChild(header);
 
       const list = document.createElement("div");
