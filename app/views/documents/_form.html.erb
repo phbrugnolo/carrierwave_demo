@@ -1,17 +1,24 @@
-<%= simple_form_for document do |f| %>
-    <% if document.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(document.errors.count, "error") %> prohibited this document from being saved:</h2>
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <%= simple_form_for document do |f| %>
+      <% if document.errors.any? %>
+        <div class="alert alert-danger">
+          <h4 class="alert-heading h6 mb-2"><%= pluralize(document.errors.count, "error") %> prohibited this document from being saved:</h4>
+          <ul class="mb-0">
+            <% document.errors.each do |error| %>
+              <li><%= error.full_message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
 
-      <ul>
-        <% document.errors.each do |error| %>
-          <li><%= error.full_message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
-
-  <%#= f.input :files, as: :file, input_html: { multiple: true } %>
-  <%= f.input :files, as: :multiple_file_uploader %>
-  <%= f.button :submit %>
-<% end %>
+      <div class="mb-3">
+        <%= f.input :files, as: :multiple_file_uploader, label: "Files", input_html: { class: "form-control" } %>
+      </div>
+      <div class="d-flex gap-2">
+        <%= f.button :submit, class: "btn btn-primary" %>
+        <%= link_to "Back", documents_path, class: "btn btn-outline-secondary" %>
+      </div>
+    <% end %>
+  </div>
+</div>

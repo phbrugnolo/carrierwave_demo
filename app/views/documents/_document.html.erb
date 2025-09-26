@@ -1,21 +1,21 @@
 <div id="<%= dom_id document %>">
-  <p><strong>Files:</strong></p>
+  <h6 class="text-uppercase text-muted small mb-2">Files</h6>
   <% if document.files.present? %>
-    <ul>
+    <ul class="list-unstyled mb-0">
       <% document.files.each do |f| %>
-        <li>
-          <%# Display image preview for common image types %>
+        <li class="mb-2">
           <% if f.content_type&.start_with?("image") %>
-            <%= link_to(image_tag(f.url, alt: File.basename(f.path), style: "max-height:120px;max-width:120px;display:block;margin-bottom:4px;object-fit:contain;border:1px solid #ddd;padding:2px;border-radius:4px"), f.url, target: "_blank", rel: "noopener") %>
+            <%= link_to(image_tag(f.url, alt: File.basename(f.path), class: "img-fluid border rounded mb-1", style: "max-height:120px;object-fit:contain;"), f.url, target: "_blank", rel: "noopener") %>
           <% end %>
-          <%= link_to File.basename(f.path), f.url, target: "_blank", rel: "noopener" %>
+          <i class="bi bi-paperclip me-1"></i>
+          <%= link_to File.basename(f.path), f.url, target: "_blank", rel: "noopener", class: "text-decoration-none" %>
           <% if f.file && f.file.respond_to?(:size) %>
-            <small>(<%= number_to_human_size(f.file.size) %>)</small>
+            <small class="text-muted">(<%= number_to_human_size(f.file.size) %>)</small>
           <% end %>
         </li>
       <% end %>
     </ul>
   <% else %>
-    <em>No files uploaded.</em>
+    <em class="text-muted">No files uploaded.</em>
   <% end %>
 </div>
