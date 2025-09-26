@@ -1,2 +1,9 @@
+@use '@fortawesome/fontawesome-free/scss/_functions.scss';
+@use '@fortawesome/fontawesome-free/scss/_variables.scss' with ($font-path: '.');
+@use '@fortawesome/fontawesome-free/scss/_mixins.scss';
+@use '@fortawesome/fontawesome-free/scss/_core.scss';
+@use '@fortawesome/fontawesome-free/scss/_animated.scss';
+@use '@fortawesome/fontawesome-free/scss/_rotated-flipped.scss';
+@use '@fortawesome/fontawesome-free/scss/_icons.scss';
+@use '@fortawesome/fontawesome-free/scss/solid.scss';
 @import 'bootstrap/scss/bootstrap';
-@import 'bootstrap-icons/font/bootstrap-icons';
