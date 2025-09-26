@@ -3,6 +3,8 @@
 # Saída no caso de qualquer comando falhar
 set -e
 
+ln -sf $HOME/carrierwave_demo/node_modules/devextreme/dist/css/icons $HOME/carrierwave_demo/app/assets/devextreme-woff/
+ln -sf $HOME/carrierwave_demo/node_modules/devextreme/dist/css/fonts $HOME/carrierwave_demo/app/assets/devextreme-woff/
 docker container exec -i postgresql psql -U postgres -c "SELECT pg_terminate_backend(pg_stat_activity.pid) FROM pg_stat_activity WHERE datname = 'carrierwave_demo_development';"
 
 # Roda dentro do ambiente de desenvolvimento

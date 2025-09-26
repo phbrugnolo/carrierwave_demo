@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DevExtreme File Upload Demo (dxFileUploader)</title>
+
+    <script src="https://cdn3.devexpress.com/jslib/25.1.3/js/dx.all.js"
+        integrity="sha384-qJdDQ8VD/f0wgmoGgKVhfdzXO5RQIlrkq6WQQfco6oHIGrrzXQ8ULNaOfCAusJpc sha512-FKyQ8w1Yr1t7QJIhtr6oAR/M/rcjA+96aR5Oc+uupeFRWl/ZwjlJLYdjw9Y9B1negpp24jjZb69wpXj7YHhwyQ=="
+        crossorigin="anonymous"></script>
+    <link href="https://cdn3.devexpress.com/jslib/25.1.3/css/dx.light.css" rel="stylesheet"
+        integrity="sha384-lQKKP+SxJ957ZOoVx5SAG4dE0ekNtHrtC78eTgLZgyrQhxc82uNB2/6TYpW/TUIV sha512-goGtnvT1hYxrVeKrmvh39SMkGZdkKilez8nQ8knj1dW+jq/lIOeymscLZaWqVg/z/sLgT72SepBFOJ4ZGcPucA=="
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+        integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body {
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            margin: 18px;
+        }
+
+        .file-card {
+            height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #e7e7e7;
+            border-radius: 6px;
+        }
+
+        .thumb {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 6px;
+            display: block;
+            margin: 0 auto 6px;
+        }
+
+        .file-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.9rem;
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="uploaderContainer"></div>
+
+    <div style="display:flex; gap:12px; margin-top:12px; align-items:center;">
+        <div id="uploadBtn"></div>
+        <div id="clearBtn"></div>
+        <div style="flex:1"></div>
+        <div id="toast"></div>
+    </div>
+
+    <div id="filesList" class="files-grid" aria-live="polite" style="margin-top:12px;"></div>
+
+    <script>
+        /* Configuration */
+        const MAX_FILES = 10;
+        const MAX_SIZE = 5 * 1024 * 1024;
+        const ALLOWED_EXT = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+
+        let selectedFiles = []; // { file, thumbUrl }
+
+        const ext = name => (name.split('.').pop() || '').toLowerCase();
+        const fmt = b => {
+            if (b === 0) return '0 Bytes';
+            const k = 1024, sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(b) / Math.log(k));
+            return (b / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
+        };
+        const showToast = (message, type = 'info') => {
+            DevExpress.ui.notify({ message }, type, 3500);
+        };
+
+        /* DevExtreme dxFileUploader instance */
+        const uploader = new DevExpress.ui.dxFileUploader(document.getElementById('uploaderContainer'), {
+            multiple: true,
+            accept: '.pdf,.jpg,.jpeg,.png,.doc,.docx',
+            maxFileSize: MAX_SIZE,
+            selectButtonText: 'Select files',
+            labelText: 'Drag & drop files here or click to select',
+            uploadMode: 'useForm', // we will use custom uploadAll function; this prevents auto-upload behavior
+            onValueChanged(e) {
+                // e.value is array of File objects
+                handleNewFiles(Array.from(e.value || []));
+                // keep file list in uploader but we manage selectedFiles separately for UI and upload
+            },
+            // prevent built-in notifications for invalid files; we'll handle validation
+            onDropZoneEnter() { },
+            onDropZoneLeave() { }
+        });
+
+        const clearBtn = new DevExpress.ui.dxButton(document.getElementById('clearBtn'), {
+            text: 'Clear',
+            stylingMode: 'outlined',
+            onClick() { clearAll(); }
+        });
+
+        /* Add and validate files (called from uploader.valueChanged) */
+        function handleNewFiles(files) {
+            const msgs = [];
+            const toAdd = [];
+            for (const f of files) {
+                if (selectedFiles.length + toAdd.length >= MAX_FILES) { msgs.push('Maximum number of files reached'); break; }
+                if (f.size > MAX_SIZE) { msgs.push(`"${f.name}" is larger than 5MB`); continue; }
+                if (!ALLOWED_EXT.includes(ext(f.name))) { msgs.push(`"${f.name}" type not allowed`); continue; }
+                if (selectedFiles.some(s => s.file.name === f.name && s.file.size === f.size)) { msgs.push(`Duplicate: ${f.name}`); continue; }
+                toAdd.push(f);
+            }
+            if (msgs.length) showToast(msgs.join(' • '), 'warning');
+            if (toAdd.length) {
+                for (const f of toAdd) {
+                    const thumb = f.type.startsWith('image/') ? URL.createObjectURL(f) : null;
+                    selectedFiles.push({ file: f, thumb });
+                }
+                renderFiles();
+            }
+            // Clear uploader internal value so user can re-select same files if needed
+            try { uploader.option('value', []); } catch (e) { /* ignore */ }
+        }
+
+        /* Render selected files grid (no preview) */
+        function renderFiles() {
+            const container = document.getElementById('filesList');
+            container.innerHTML = '';
+            if (!selectedFiles.length) {
+                clearBtn.option('disabled', true);
+                return;
+            }
+            clearBtn.option('disabled', false);
+            const total = selectedFiles.reduce((s, i) => s + i.file.size, 0);
+
+            selectedFiles.forEach((entry, idx) => {
+                const div = document.createElement('div');
+                div.className = 'file-card';
+                // top: thumb or icon
+                const top = document.createElement('div');
+                top.style.textAlign = 'center';
+                if (entry.thumb) {
+                    const img = document.createElement('img');
+                    img.src = entry.thumb;
+                    img.className = 'thumb';
+                    img.alt = entry.file.name;
+                    top.appendChild(img);
+                } else {
+                    const icon = document.createElement('div');
+                    icon.style.fontSize = '2.3rem';
+                    icon.style.color = '#6b6b6b';
+                    icon.textContent = '📄';
+                    top.appendChild(icon);
+                }
+                // middle: name + size
+                const mid = document.createElement('div');
+                const name = document.createElement('div');
+                name.className = 'file-name';
+                name.title = entry.file.name;
+                name.textContent = entry.file.name;
+                const size = document.createElement('div');
+                size.style.fontSize = '0.85rem';
+                size.style.color = '#666';
+                size.textContent = fmt(entry.file.size);
+                mid.appendChild(name);
+                mid.appendChild(size);
+
+                // bottom: actions (only Remove)
+                const bottom = document.createElement('div');
+                bottom.style.display = 'flex';
+                bottom.style.gap = '8px';
+                bottom.style.justifyContent = 'stretch';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'dx-button dx-button-normal';
+                removeBtn.textContent = 'Remove';
+                removeBtn.onclick = () => removeFile(idx);
+                bottom.appendChild(removeBtn);
+
+                div.appendChild(top);
+                div.appendChild(mid);
+                div.appendChild(bottom);
+                container.appendChild(div);
+            });
+
+            // update a concise info text separately (using notify to avoid extra DOM)
+            showToast(`Selected: ${selectedFiles.length} — ${fmt(total)}`, 'info');
+        }
+
+        /* Remove file and revoke thumb */
+        function removeFile(index) {
+            const entry = selectedFiles[index];
+            if (entry && entry.thumb) URL.revokeObjectURL(entry.thumb);
+            selectedFiles.splice(index, 1);
+            renderFiles();
+        }
+
+        /* Clear all */
+        function clearAll() {
+            selectedFiles.forEach(e => { if (e.thumb) URL.revokeObjectURL(e.thumb); });
+            selectedFiles = [];
+            renderFiles();
+        }
+    </script>
+</body>
+
+</html>
