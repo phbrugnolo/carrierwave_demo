@@ -1,79 +1,89 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Upload Input BS Version</title>
-  <!-- Bootstrap 5 CSS (CDN) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
-    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
-    integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <style>
-    .border-dashed {
-      border-style: dashed !important;
-    }
-  </style>
+  <title>Upload Form - Exibir Infos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 </head>
-
 <body>
   <div class="container my-4">
-    <form>
+    <form id="uploadForm" novalidate>
       <div class="mb-4">
         <label for="participationList" class="form-label d-flex align-items-center justify-content-between">
           <span>Upload Input</span>
-          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearFiles()" style="display: none;"
-            id="btnClear">
-            <i class="fas fa-times-circle me-1"></i>Clear
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearFiles()" style="display: none;" id="btnClear">
+            <i class="fas fa-times-circle me-1"></i>Limpar
           </button>
         </label>
-        <div class="border border-2 border-dashed rounded p-4 text-center" style="background-color: #f8f9fa;">
+
+        <div id="dropZone" class="border border-2 rounded p-4 text-center" style="background-color: #f8f9fa; border-style: dashed !important;">
           <div class="mb-3">
             <i class="fas fa-upload" style="font-size: 2rem; color: #6c757d;"></i>
           </div>
           <p class="mb-2">
-            <strong>Drag and drop</strong> files here or
-            <button type="button" class="btn btn-link p-0"
-              onclick="document.getElementById('participationList').click()">
-              click to select
+            <strong>Drag and drop</strong> arquivos aqui ou
+            <button type="button" class="btn btn-link p-0" onclick="document.getElementById('participationList').click()">
+              clicar para selecionar
             </button>.
           </p>
           <small class="text-muted">
-            Supports multiple selection. Allowed types: PDF, Image, DOC. Max files: 10. Max per file: 5 MB.
+            Múltipla seleção. Tipos: PDF, Image, DOC. Máx arquivos: 10. Máx por arquivo: 5 MB.
           </small>
+
           <input type="file" class="d-none" id="participationList" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple>
-          <div id="selectedFiles" class="mt-3">
-            <!-- Files will appear here -->
-          </div>
+          <div id="selectedFiles" class="mt-3"></div>
         </div>
       </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Enviar</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="clearFiles()">Cancelar</button>
+      </div>
     </form>
+
+    <hr class="my-4">
+
+    <div id="submissionResult">
+      <!-- Resultado do envio aparecerá aqui -->
+    </div>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
-    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-    crossorigin="anonymous"></script>
+
   <script>
     let selectedFiles = [];
-    document.getElementById('participationList').addEventListener('change', function () {
-      const newFiles = Array.from(this.files);
-      selectedFiles = [...selectedFiles, ...newFiles];
+
+    const input = document.getElementById('participationList');
+    input.addEventListener('change', function () {
+      addFiles(Array.from(this.files));
+      this.value = '';
+    });
+
+    function addFiles(filesArray) {
+      // concat e validações de contagem e tamanho
+      selectedFiles = [...selectedFiles, ...filesArray];
       if (selectedFiles.length > 10) {
-        alert('Maximum of 10 files allowed');
+        alert('Máximo de 10 arquivos permitidos. Serão mantidos os 10 primeiros.');
         selectedFiles = selectedFiles.slice(0, 10);
       }
+      // filtrar por tamanho e tipos permitidos
       selectedFiles = selectedFiles.filter(file => {
+        const allowedExt = ['pdf','jpg','jpeg','png','doc','docx'];
+        const name = (file.name || '').toLowerCase();
+        const ext = name.split('.').pop();
+        if (!allowedExt.includes(ext)) {
+          alert(`Tipo não permitido: ${file.name}`);
+          return false;
+        }
         if (file.size > 5 * 1024 * 1024) {
-          alert(`File ${file.name} exceeds 5MB`);
+          alert(`Arquivo ${file.name} excede 5MB`);
           return false;
         }
         return true;
       });
-      this.value = '';
       showSelectedFiles();
-    });
+    }
+
     function showSelectedFiles() {
       const container = document.getElementById('selectedFiles');
       const btnClear = document.getElementById('btnClear');
@@ -83,80 +93,113 @@
         return;
       }
       const totalSize = selectedFiles.reduce((sum, file) => sum + file.size, 0);
-      const totalSizeFormatted = formatBytes(totalSize);
       container.innerHTML = `
-          <div class="text-start mt-3">
-            <p class="mb-2"><strong>Selected:</strong> ${selectedFiles.length} - ${totalSizeFormatted}</p>
-            <div class="row">
-              ${selectedFiles.map((file, index) => `
-                <div class="col mb-3" style="flex: 0 0 calc(100% / 7);">
-                  <div class="border rounded p-2 d-flex flex-column text-center" style="height: 160px;">
-                    <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
-                      ${getFileIcon(file)}
-                      <div class="small text-truncate mt-1 w-100" title="${file.name}">
-                        ${file.name.length > 10 ? file.name.substring(0, 10) + '...' : file.name}
-                      </div>
-                      <div class="small text-muted">${formatBytes(file.size)}</div>
+        <div class="text-start mt-3">
+          <p class="mb-2"><strong>Selecionados:</strong> ${selectedFiles.length} - ${formatBytes(totalSize)}</p>
+          <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 g-3">
+            ${selectedFiles.map((file, index) => `
+              <div class="col">
+                <div class="border rounded p-2 h-100 d-flex flex-column">
+                  <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
+                    ${getFileIcon(file)}
+                    <div class="small text-truncate mt-1 w-100" title="${escapeHtml(file.name)}">
+                      ${file.name.length > 18 ? escapeHtml(file.name.substring(0, 18)) + '...' : escapeHtml(file.name)}
                     </div>
-                    <div class="mt-auto w-100">
-                      <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeFile(${index})" style="font-size: 0.75rem;">
-                        Remove
-                      </button>
-                    </div>
+                    <div class="small text-muted">${formatBytes(file.size)}</div>
+                  </div>
+                  <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeFile(${index})">Remover</button>
                   </div>
                 </div>
-              `).join('')}
-            </div>
+              </div>
+            `).join('')}
           </div>
-        `;
+        </div>
+      `;
       btnClear.style.display = 'block';
     }
+
     function getFileIcon(file) {
-      const isImage = file.type.startsWith('image/');
+      const isImage = file.type && file.type.startsWith('image/');
       if (isImage) {
         const url = URL.createObjectURL(file);
-        return `<img src="${url}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; margin: 0 auto;" onload="URL.revokeObjectURL(this.src)">`;
+        return `<img src="${url}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;" onload="URL.revokeObjectURL(this.src)">`;
       } else {
-        return `<i class="fas fa-file" style="font-size: 2.5rem; color: #6c757d;"></i>`;
+        return `<i class="fas fa-file" style="font-size:2rem;color:#6c757d;"></i>`;
       }
     }
+
     function formatBytes(bytes) {
       if (bytes === 0) return '0 Bytes';
       const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const sizes = ['Bytes','KB','MB','GB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
+
     function removeFile(index) {
       selectedFiles.splice(index, 1);
       showSelectedFiles();
-      document.getElementById('participationList').value = '';
     }
+
     function clearFiles() {
       selectedFiles = [];
-      document.getElementById('participationList').value = '';
+      input.value = '';
       showSelectedFiles();
+      document.getElementById('submissionResult').innerHTML = '';
     }
-    // Drag and drop functionality
-    const dropZone = document.querySelector('.border-dashed');
-    dropZone.addEventListener('dragover', function (e) {
-      e.preventDefault();
-      this.style.backgroundColor = '#e9ecef';
-    });
-    dropZone.addEventListener('dragleave', function (e) {
-      e.preventDefault();
-      this.style.backgroundColor = '#f8f9fa';
-    });
-    dropZone.addEventListener('drop', function (e) {
-      e.preventDefault();
-      this.style.backgroundColor = '#f8f9fa';
-      const files = Array.from(e.dataTransfer.files);
-      if (files.length > 0) {
-        selectedFiles = files.slice(0, 10);
-        showSelectedFiles();
-      }
-    });
-  </script>
-</body>
 
+    // Drag and drop
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.backgroundColor = '#e9ecef'; });
+    dropZone.addEventListener('dragleave', e => { e.preventDefault(); dropZone.style.backgroundColor = '#f8f9fa'; });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.style.backgroundColor = '#f8f9fa';
+      const files = Array.from(e.dataTransfer.files || []);
+      if (files.length) addFiles(files);
+    });
+
+    // Form submit - exibe tabela com nome, tipo e tamanho
+    const form = document.getElementById('uploadForm');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const result = document.getElementById('submissionResult');
+      if (selectedFiles.length === 0) {
+        result.innerHTML = `<div class="alert alert-warning">Nenhum arquivo selecionado.</div>`;
+        return;
+      }
+      const rows = selectedFiles.map(file => {
+        const type = file.type || getExtension(file.name) || 'desconhecido';
+        return `<tr>
+          <td>${escapeHtml(file.name)}</td>
+          <td>${escapeHtml(type)}</td>
+          <td>${formatBytes(file.size)}</td>
+        </tr>`;
+      }).join('');
+      result.innerHTML = `
+        <h5>Arquivos enviados</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr><th>Nome</th><th>Tipo</th><th>Tamanho</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      `;
+      // aqui você pode enviar selectedFiles via fetch/XHR se desejar
+    });
+
+    // utilitários
+    function getExtension(name) {
+      return name && name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+    }
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[s]);
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

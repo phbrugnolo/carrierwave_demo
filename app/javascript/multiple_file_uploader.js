@@ -1,175 +1,128 @@
-// Multiple File Uploader (vanilla JS + Bootstrap styles)
-// Now refactored into an ES module exporting a class.
-// Usage:
-//   import { MultipleFileUploader } from "./multiple_file_uploader";
-//   MultipleFileUploader.autoDiscover(); // or manually: new MultipleFileUploader(element)
+export const MultipleFileUploader = () => {
+  document.querySelectorAll('input[data-provide="multiple_file_uploader"]').forEach(input => {
+    const id = input.id;
+    const dropZone = document.getElementById(`${id}_dropZone`);
+    const selectedFilesContainer = document.getElementById(`${id}_selectedFiles`);
+    const btnClear = document.getElementById(`${id}_btn_clear`);
+    const trigger = dropZone.querySelector('[data-trigger]');
 
-export class MultipleFileUploader {
-  static SELECTOR = '[data-provide="multiple-file-uploader"]';
+    let selectedFiles = [];
 
-  static autoDiscover() {
-    document.querySelectorAll(MultipleFileUploader.SELECTOR).forEach(el => {
-      if (!el.__mfu) el.__mfu = new MultipleFileUploader(el);
-    });
-  }
+    // trigger button opens native picker
+    trigger && trigger.addEventListener('click', () => input.click());
 
-  static formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
-
-  constructor(wrapper) {
-    this.wrapper = wrapper;
-    if (this.wrapper.__initialized) return; // idempotent guard
-    this.wrapper.__initialized = true;
-
-    this.fileInput = this.wrapper.querySelector('input[type="file"]');
-    if (!this.fileInput) return;
-
-    this.previews = this.wrapper.querySelector('[data-multiple-file-uploader-target="previews"]');
-    this.clearBtn = this.wrapper.querySelector('[data-action="multiple-file-uploader#clear"]');
-    this.limitFiles = parseInt(this.wrapper.getAttribute('data-limit-files') || '10', 10);
-    this.maxFileSizeMB = parseInt(this.wrapper.getAttribute('data-max-file-size-mb') || '5', 10);
-    this.maxFileSizeBytes = this.maxFileSizeMB * 1024 * 1024;
-    this.selectedFiles = [];
-
-    this.bindEvents();
-  }
-
-  bindEvents() {
-    this.fileInput.addEventListener('change', (e) => {
-      this.addFiles(e.target.files);
-      this.fileInput.value = '';
+    // file input change
+    input.addEventListener('change', (e) => {
+      const newFiles = Array.from(e.target.files || []);
+      appendFiles(newFiles);
+      render();
     });
 
-    if (this.clearBtn) {
-      this.clearBtn.addEventListener('click', () => this.clear());
-    }
+    // clear
+    btnClear.addEventListener('click', clearFiles);
 
-    if (this.previews) {
-      this.previews.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-remove-index]');
-        if (!btn) return;
-        const index = parseInt(btn.getAttribute('data-remove-index'), 10);
-        this.removeAt(index);
-      });
-    }
-
-    // Drag & drop
-    const dropZone = this.wrapper.querySelector('.border-dashed');
-    this.dropArea = dropZone || this.wrapper.querySelector('[data-action*="drop->"]') || this.wrapper;
-    ['dragenter', 'dragover'].forEach(ev => {
-      this.dropArea.addEventListener(ev, e => {
+    // drag & drop
+    ['dragenter','dragover'].forEach(evt => {
+      dropZone.addEventListener(evt, (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        this.highlight(true);
+        dropZone.style.backgroundColor = '#e9ecef';
       });
     });
-    ['dragleave', 'dragend'].forEach(ev => {
-      this.dropArea.addEventListener(ev, e => {
-        e.preventDefault();
-        e.stopPropagation();
-        this.highlight(false);
-      });
-    });
-    this.dropArea.addEventListener('drop', e => {
+    dropZone.addEventListener('dragleave', (e) => {
       e.preventDefault();
-      e.stopPropagation();
-      this.highlight(false);
-      if (e.dataTransfer?.files?.length) {
-        this.addFiles(e.dataTransfer.files);
+      dropZone.style.backgroundColor = '#f8f9fa';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.backgroundColor = '#f8f9fa';
+      const files = Array.from(e.dataTransfer.files || []);
+      appendFiles(files);
+      render();
+    });
+
+    function appendFiles(files) {
+      if (!files.length) return;
+      selectedFiles = [...selectedFiles, ...files];
+      if (selectedFiles.length > 10) {
+        alert('Maximum of 10 files allowed');
+        selectedFiles = selectedFiles.slice(0, 10);
       }
-    });
-
-    // Trigger buttons
-    this.wrapper.querySelectorAll('[data-action="click->multiple-file-uploader#trigger"]').forEach(btn => {
-      btn.addEventListener('click', () => this.fileInput.click());
-    });
-  }
-
-  highlight(on) {
-    if (!this.dropArea) return;
-    this.dropArea.classList.toggle('bg-secondary-subtle', on);
-  }
-
-  addFiles(fileList) {
-    const incoming = Array.from(fileList);
-    let merged = this.selectedFiles.concat(incoming);
-    if (merged.length > this.limitFiles) {
-      alert(`Máximo de ${this.limitFiles} arquivos permitido.`);
-      merged = merged.slice(0, this.limitFiles);
+      selectedFiles = selectedFiles.filter(file => {
+        if (file.size > 5 * 1024 * 1024) {
+          alert(`File ${file.name} exceeds 5MB`);
+          return false;
+        }
+        return true;
+      });
     }
-    merged = merged.filter(f => {
-      if (f.size > this.maxFileSizeBytes) {
-        alert(`Arquivo ${f.name} excede ${this.maxFileSizeMB}MB.`);
-        return false;
+
+    function render() {
+      if (!selectedFiles.length) {
+        selectedFilesContainer.innerHTML = '';
+        btnClear.style.display = 'none';
+        return;
       }
-      return true;
-    });
-    this.selectedFiles = merged;
-    this.syncNativeInput();
-    this.render();
-  }
 
-  removeAt(index) {
-    this.selectedFiles.splice(index, 1);
-    this.syncNativeInput();
-    this.render();
-  }
+      const totalSize = selectedFiles.reduce((s,f) => s + f.size, 0);
+      const totalSizeFormatted = formatBytes(totalSize);
 
-  clear() {
-    this.selectedFiles = [];
-    this.syncNativeInput();
-    this.render();
-  }
+      const cols = selectedFiles.map((file, index) => {
+        const nameShort = file.name.length > 10 ? file.name.substring(0,10) + '...' : file.name;
+        const isImage = file.type.startsWith('image/');
+        let templateHtml = `<i class="fas fa-file" style="font-size: 2.5rem; color: #6c757d;"></i>`;
+        if (isImage) {
+          const url = URL.createObjectURL(file);
+          templateHtml = `<img src="${url}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;margin:0 auto;" onload="URL.revokeObjectURL(this.src)">`;
+        }
+        return `
+          <div class="col mb-3" style="flex: 0 0 calc(100% / 7);">
+            <div class="border rounded p-2 d-flex flex-column text-center" style="height: 160px;">
+              <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center">
+                ${templateHtml}
+                <div class="small text-truncate mt-1 w-100" title="${file.name}">${nameShort}</div>
+                <div class="small text-muted">${formatBytes(file.size)}</div>
+              </div>
+              <div class="mt-auto w-100">
+                <button type="button" class="btn btn-sm btn-outline-danger w-100" data-remove-index="${index}" style="font-size:0.75rem;">Remove</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
 
-  syncNativeInput() {
-    const dt = new DataTransfer();
-    this.selectedFiles.forEach(f => dt.items.add(f));
-    this.fileInput.files = dt.files;
-  }
+      selectedFilesContainer.innerHTML = `
+        <div class="text-start mt-3">
+          <p class="mb-2"><strong>Selected:</strong> ${selectedFiles.length} - ${totalSizeFormatted}</p>
+          <div class="row">${cols}</div>
+        </div>
+      `;
+      btnClear.style.display = 'block';
 
-  render() {
-    if (!this.previews) return;
-    if (this.selectedFiles.length === 0) {
-      this.previews.innerHTML = '';
-      if (this.clearBtn) this.clearBtn.style.display = 'none';
-      return;
+      // attach remove listeners
+      selectedFilesContainer.querySelectorAll('[data-remove-index]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-remove-index'), 10);
+          removeFile(idx);
+        });
+      });
     }
-    if (this.clearBtn) this.clearBtn.style.display = 'inline-block';
-    const totalSize = this.selectedFiles.reduce((s, f) => s + f.size, 0);
-    const gridItems = this.selectedFiles.map((file, index) => {
-      const isImage = file.type.startsWith('image/');
-      let previewPart;
-      if (isImage) {
-        const url = URL.createObjectURL(file);
-        previewPart = `<img src="${url}" class="rounded mb-1" style="width:40px;height:40px;object-fit:cover;" data-temp-url>`;
-      } else {
-        previewPart = '<i class="fas fa-file" style="font-size:2rem;color:#6c757d;"></i>';
-      }
-      const shortName = file.name.length > 14 ? file.name.slice(0, 11) + '…' : file.name;
-      return `
-        <div class="col mb-3" style="flex:0 0 calc(100% / 7);">\n          <div class="border rounded p-2 d-flex flex-column text-center" style="height:160px;">\n            <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center">\n              ${previewPart}\n              <div class="small text-truncate mt-1 w-100" title="${file.name}">${shortName}</div>\n              <div class="small text-muted">${MultipleFileUploader.formatBytes(file.size)}</div>\n            </div>\n            <div class="mt-auto w-100">\n              <button type=\"button\" class=\"btn btn-sm btn-outline-danger w-100\" data-remove-index=\"${index}\" style=\"font-size:0.7rem;\">Remover</button>\n            </div>\n          </div>\n        </div>`;
-    }).join('');
 
-    this.previews.innerHTML = `
-      <div class="mt-3">
-        <p class="mb-2"><strong>Selecionados:</strong> ${this.selectedFiles.length} - ${MultipleFileUploader.formatBytes(totalSize)}</p>
-        <div class="row">${gridItems}</div>
-      </div>`;
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      render();
+    }
 
-    this.previews.querySelectorAll('img[data-temp-url]').forEach(img => {
-      img.addEventListener('load', () => URL.revokeObjectURL(img.src), { once: true });
-    });
-  }
-}
+    function clearFiles() {
+      selectedFiles = [];
+      render();
+    }
 
-// Auto-init (keeps previous behavior) when using standard pack import
-// function autoInit() { MultipleFileUploader.autoDiscover(); }
-// document.addEventListener('turbo:load', autoInit);
-// document.addEventListener('DOMContentLoaded', autoInit);
-
-
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes','KB','MB','GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+  });
+};

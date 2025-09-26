@@ -11,6 +11,7 @@
     </div>
   <% end %>
 
+  <%#= f.input :files, as: :file, input_html: { multiple: true } %>
   <%= f.input :files, as: :multiple_file_uploader %>
   <%= f.button :submit %>
 <% end %>
