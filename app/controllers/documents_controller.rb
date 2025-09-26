@@ -36,16 +36,16 @@ class DocumentsController < ApplicationController
 
   # PATCH/PUT /documents/1 or /documents/1.json
   def update
-    # Estratégia: CarrierWave substitui o array inteiro ao atribuir files=.
-    # Precisamos mesclar os arquivos existentes com os novos, removendo duplicados por nome normalizado.
+    # Strategy: CarrierWave replaces the entire array when assigning files=.
+    # We need to merge existing files with the new ones, removing duplicates by normalized filename.
     new_files = Array(document_params[:files]).reject(&:blank?)
 
-    # Se nenhum arquivo novo chegou e não há comandos de remoção, apenas redireciona (nada mudou).
+    # If no new file arrived and there are no removal commands, just redirect (nothing changed).
     return redirect_to(@document, notice: "Document was successfully updated.", status: :see_other) if new_files.empty? && removal_list.empty? && !remove_all?
 
     existing = Array(@document.files)
 
-    # Aplicar remoções específicas (por nome) se vierem do form.
+    # Apply specific removals (by name) if they came from the form.
     unless removal_list.empty?
       normalized_removals = removal_list.map { |n| normalize_filename(n) }.to_set
       existing = existing.reject do |u|
@@ -57,7 +57,8 @@ class DocumentsController < ApplicationController
 
     merged = existing + new_files
 
-    # Remover duplicados por nome (mantém primeira ocorrência: se novo tem mesmo nome de existente, substituímos preservando o novo ao final => então invert + uniq + invert).
+    # Remove duplicates by filename (keep the first occurrence: if a new file has the same name as an existing one,
+    # we effectively replace it by keeping the new one at the end => reverse + uniq + reverse).
     merged = merged.reverse.uniq do |f|
       if f.respond_to?(:original_filename)
         normalize_filename(f.original_filename)
@@ -100,9 +101,9 @@ class DocumentsController < ApplicationController
       params.expect(document: [ { files: [] } ])
     end
 
-    # Lista de nomes de arquivos existentes a remover (virá de um campo hidden futuro: document[remove_existing][])
+    # List of existing filenames to remove (will come from a future hidden field: document[remove_existing][])
     def removal_list
-      Array(params.dig(:document, :remove_existing)).reject(&:blank?)
+      Array(params.dig(:document, :remove_existing)).reject { |v| v.blank? || v == "file" }
     end
 
     def remove_all?
