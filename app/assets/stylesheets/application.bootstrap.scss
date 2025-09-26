@@ -7,8 +7,3 @@
 @use '@fortawesome/fontawesome-free/scss/_icons.scss';
 @use '@fortawesome/fontawesome-free/scss/solid.scss';
 @import 'bootstrap/scss/bootstrap';
-
-// Helper class used by custom multiple file uploader drag zone
-.border-dashed {
-	border-style: dashed !important;
-}
