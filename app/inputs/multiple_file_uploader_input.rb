@@ -24,11 +24,22 @@ class MultipleFileUploaderInput < SimpleForm::Inputs::Base
       )
 
       # drop zone block
+      existing_files = Array(object.send(attribute_name)).compact.select(&:present?)
+      existing_files_data = existing_files.map do |u|
+        {
+          name: File.basename(u.path || u.url),
+          url: u.url,
+          size: (File.size?(u.path) rescue nil),
+          content_type: (u.content_type if u.respond_to?(:content_type))
+        }
+      end
+
       template.concat(
         template.content_tag(:div,
           id: "#{input_id}_dropZone",
           class: "border border-2 rounded p-4 text-center",
-          style: "background-color: #f8f9fa; border-style: dashed !important;"
+          style: "background-color: #f8f9fa; border-style: dashed !important;",
+          data: { existing_files: existing_files_data.to_json }
         ) do
           inner = "".dup
           inner << template.content_tag(:div, template.content_tag(:i, "", class: "fas fa-upload", style: "font-size: 2rem; color: #6c757d;"), class: "mb-3")
