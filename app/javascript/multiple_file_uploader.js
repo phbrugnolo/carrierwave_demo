@@ -1,6 +1,45 @@
+import Toast from "bootstrap/js/dist/toast";
+
 export const MultipleFileUploader = () => {
   const inputs = document.querySelectorAll('input[data-provide="multiple_file_uploader"]');
   if (!inputs.length) return;
+
+  // Toast helpers
+  function ensureToastContainer() {
+    let c = document.getElementById("fileUploaderToasts");
+    if (!c) {
+      c = document.createElement("div");
+      c.id = "fileUploaderToasts";
+      c.className = "toast-container position-fixed bottom-0 end-0 p-3";
+      document.body.appendChild(c);
+    }
+    return c;
+  }
+
+  function showToast(message, { variant = "info", autohide = true, delay = 5000 } = {}) {
+    const container = ensureToastContainer();
+    const toast = document.createElement("div");
+    toast.className = `toast align-items-center border-0 text-bg-${variant}`;
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "assertive");
+    toast.setAttribute("aria-atomic", "true");
+    toast.dataset.bsAutohide = autohide ? "true" : "false";
+    toast.dataset.bsDelay = String(delay);
+
+    toast.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    `;
+
+    container.appendChild(toast);
+    new Toast(toast).show();
+
+    toast.addEventListener("hidden.bs.toast", () => {
+      toast.remove();
+    });
+  }
 
   inputs.forEach(input => {
     const id = input.id;
@@ -38,15 +77,6 @@ export const MultipleFileUploader = () => {
     };
     const t = { ...defaultTexts, ...texts };
 
-    function setStatus(msg, { error = false, append = false } = {}) {
-      if (!statusRegion) return;
-      if (!append) statusRegion.textContent = "";
-      const div = document.createElement("div");
-      div.textContent = msg;
-      div.className = error ? "text-danger small" : "text-muted small";
-      statusRegion.appendChild(div);
-      statusRegion.classList.remove("visually-hidden");
-    }
     function clearStatus() {
       if (!statusRegion) return;
       statusRegion.textContent = "";
@@ -138,6 +168,7 @@ export const MultipleFileUploader = () => {
     function appendFiles(files) {
       if (!files.length) return;
       clearStatus();
+
       const existingNames = new Set(selectedFiles.map(f => f.name.toLowerCase()));
       const uniqueNew = [];
       const duplicates = [];
@@ -153,17 +184,18 @@ export const MultipleFileUploader = () => {
       });
 
       if (duplicates.length) {
-        setStatus(`${t.duplicate_warning} ${duplicates.join(", ")}`, { error: true, append: true });
+        const msg = `${t.duplicate_warning} ${duplicates.join(", ")}`;
+        showToast(msg, { variant: "warning" });
       }
 
       const projected = selectedFiles.length + uniqueNew.length;
       if (projected > max_files) {
         const allowed = max_files - selectedFiles.length;
+        const msg = t.too_many_files.replace("%{max}", max_files);
+        showToast(msg, { variant: "danger" });
         if (allowed <= 0) {
-          setStatus(t.too_many_files.replace("%{max}", max_files), { error: true, append: true });
           return;
         } else {
-          setStatus(t.too_many_files.replace("%{max}", max_files), { error: true, append: true });
           uniqueNew.splice(allowed);
         }
       }
@@ -172,7 +204,8 @@ export const MultipleFileUploader = () => {
       const filtered = [];
       uniqueNew.forEach(f => {
         if (f.size > maxBytes) {
-          setStatus(t.file_too_large.replace("%{name}", f.name).replace("%{limit}", max_file_mb), { error: true, append: true });
+          const msg = t.file_too_large.replace("%{name}", f.name).replace("%{limit}", max_file_mb);
+          showToast(msg, { variant: "danger" });
         } else {
           filtered.push(f);
         }
