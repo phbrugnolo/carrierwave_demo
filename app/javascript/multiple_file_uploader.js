@@ -10,6 +10,7 @@ const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_EXT = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'txt']
 
 const fileExt = (name) => (name.split('.').pop() || '').toLowerCase()
+const toast = (message, type = 'info') => notify({ message }, type, 3000)
 const fmtBytes = (b) => {
   if (b === 0) return '0 Bytes'
   const k = 1024
@@ -17,7 +18,13 @@ const fmtBytes = (b) => {
   const i = Math.floor(Math.log(b) / Math.log(k))
   return (b / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i]
 }
-const toast = (message, type = 'info') => notify({ message }, type, 3000)
+const removedParamName = (hiddenInputName) => {
+  const m = hiddenInputName.match(/^([^\[]+)\[([^\]]+)\](?:\[\])?$/)
+  if (!m) return 'removed_files[]'
+  const model = m[1]
+  const attr  = m[2]
+  return `${model}[removed_${attr}][]`
+}
 
 export const MultipleFileUploader = () => {
   document.querySelectorAll('div[data-provide="multiple_file_uploader"]').forEach((root) => {
@@ -25,6 +32,7 @@ export const MultipleFileUploader = () => {
     root.dataset.enhanced = 'true'
 
     const hiddenInput = root.querySelector('[data-input-target]')
+    console.log(removedParamName(hiddenInput.name))
     const mountEl = root.querySelector('.dx-uploader-mount')
     const listEl = root.querySelector('[data-list-target]')
     const actionsEl = root.querySelector('.uploader-actions')
@@ -92,12 +100,7 @@ export const MultipleFileUploader = () => {
             if (entry.existing && entry.id) {
               const hidden = document.createElement('input')
               hidden.type = 'hidden'
-              // hiddenInput.name is typically: "document[files][]"
-              // We want to send: document[removed_files][] (NOT nested under files)
-              let baseName = hiddenInput.name.replace(/\[\]$/, '') // document[files]
-              // Remove trailing [files] so we can append [removed_files]
-              baseName = baseName.replace(/\[files\]$/, '') // document
-              hidden.name = `${baseName}[removed_files][]`
+              hidden.name = removedParamName(hiddenInput.name)
               hidden.value = entry.id
               removedContainer.appendChild(hidden)
             }
