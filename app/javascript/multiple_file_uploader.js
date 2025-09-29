@@ -1,8 +1,4 @@
-// MultipleFileUploader
-// Enhances the custom SimpleForm input rendered by MultipleFileUploaderInput
-// Requires devextreme (installed via npm) assets to be available.
-// It mounts a FileUploader widget and keeps a hidden native input updated so
-// Rails / CarrierWave receives params as usual.
+// MultipleFileUploader (com suporte a removed_files[])
 
 import 'devextreme/dist/css/dx.light.css'
 import FileUploader from 'devextreme/ui/file_uploader'
@@ -32,12 +28,17 @@ export const MultipleFileUploader = () => {
     const mountEl = root.querySelector('.dx-uploader-mount')
     const listEl = root.querySelector('[data-list-target]')
     const actionsEl = root.querySelector('.uploader-actions')
-    let selected = [] // { file, thumb }
+
+    // Container para inputs hidden de removed_files
+    const removedContainer = document.createElement('div')
+    removedContainer.style.display = 'none'
+    root.appendChild(removedContainer)
+
+    let selected = [] // { file, thumb, existing, id }
 
     const syncHiddenInput = () => {
-      // Use DataTransfer to assign FileList to hidden file input
       const dt = new DataTransfer()
-      selected.forEach(e => dt.items.add(e.file))
+      selected.filter(e => !e.existing).forEach(e => dt.items.add(e.file))
       hiddenInput.files = dt.files
     }
 
@@ -52,7 +53,6 @@ export const MultipleFileUploader = () => {
       selected.forEach((entry, idx) => {
         const card = document.createElement('div')
         card.className = 'mf-file-card'
-        // Preview area
         const preview = document.createElement('div')
         preview.className = 'mf-preview'
         const ext = fileExt(entry.file.name)
@@ -65,18 +65,19 @@ export const MultipleFileUploader = () => {
         } else {
           const span = document.createElement('div')
           span.className = 'mf-icon'
-          // Choose a FontAwesome icon class based on extension
           let iconClass = 'fa-file'
-          if (['jpg','jpeg','png','gif','webp'].includes(ext)) iconClass = 'fa-file-image'
-          else if (['pdf'].includes(ext)) iconClass = 'fa-file-pdf'
-          else if (['doc','docx'].includes(ext)) iconClass = 'fa-file-word'
-          else if (['txt','md','rtf'].includes(ext)) iconClass = 'fa-file-lines'
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) iconClass = 'fa-file-image'
+            else if (['pdf'].includes(ext)) iconClass = 'fa-file-pdf'
+            else if (['doc', 'docx'].includes(ext)) iconClass = 'fa-file-word'
+            else if (['txt', 'md', 'rtf'].includes(ext)) iconClass = 'fa-file-lines'
           span.innerHTML = `<i class="fa-solid ${iconClass}"></i>`
           preview.appendChild(span)
         }
+
         const name = document.createElement('div')
         name.className = 'mf-name'
         name.textContent = entry.file.name
+
         const size = document.createElement('div')
         size.className = 'mf-size'
         size.textContent = fmtBytes(entry.file.size)
@@ -86,11 +87,26 @@ export const MultipleFileUploader = () => {
         removeBtn.setAttribute('aria-label', 'Remove file')
         removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>'
         removeBtn.addEventListener('click', () => {
-          if (entry.thumb) URL.revokeObjectURL(entry.thumb)
-          selected.splice(idx, 1)
-          syncHiddenInput()
-          renderList()
+          if (entry.thumb && entry.thumb.startsWith('blob:')) URL.revokeObjectURL(entry.thumb)
+
+            if (entry.existing && entry.id) {
+              const hidden = document.createElement('input')
+              hidden.type = 'hidden'
+              // hiddenInput.name is typically: "document[files][]"
+              // We want to send: document[removed_files][] (NOT nested under files)
+              let baseName = hiddenInput.name.replace(/\[\]$/, '') // document[files]
+              // Remove trailing [files] so we can append [removed_files]
+              baseName = baseName.replace(/\[files\]$/, '') // document
+              hidden.name = `${baseName}[removed_files][]`
+              hidden.value = entry.id
+              removedContainer.appendChild(hidden)
+            }
+
+            selected.splice(idx, 1)
+            syncHiddenInput()
+            renderList()
         })
+
         card.appendChild(preview)
         card.appendChild(name)
         card.appendChild(size)
@@ -121,7 +137,6 @@ export const MultipleFileUploader = () => {
       }
     }
 
-    // Initialize dxFileUploader widget
     const uploader = new FileUploader(mountEl, {
       multiple: true,
       selectButtonText: 'Select files',
@@ -130,25 +145,41 @@ export const MultipleFileUploader = () => {
       uploadMode: 'useForm',
       onValueChanged(e) {
         addFiles(e.value || [])
-        try { uploader.option('value', []) } catch (_) { }
+        try { uploader.option('value', []) } catch (_) {}
       }
     })
 
-    // Clear button
     const clearBtnEl = document.createElement('div')
     actionsEl.appendChild(clearBtnEl)
     new Button(clearBtnEl, {
       text: 'Clear',
       stylingMode: 'outlined',
       onClick() {
-        selected.forEach(e => { if (e.thumb) URL.revokeObjectURL(e.thumb) })
-        selected = []
+        selected.filter(e => !e.existing && e.thumb && e.thumb.startsWith('blob:')).forEach(e => URL.revokeObjectURL(e.thumb))
+        selected = selected.filter(e => e.existing)
         syncHiddenInput()
         renderList()
       }
     })
 
-    // Styles now provided via SCSS (app/assets/stylesheets/multiple_file_uploader.scss)
+    try {
+      const raw = root.dataset.existingFiles || root.dataset.existing_files
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        parsed.forEach(obj => {
+          const name = obj.identifier || 'undefined'
+          const id = obj.identifier || name
+          const pseudoFile = new File([new Blob()], name, { type: 'application/octet-stream' })
+          Object.defineProperty(pseudoFile, 'size', { value: obj.size || 0 })
+          const ext = fileExt(name)
+          const isImage = ['jpg','jpeg','png','gif','webp'].includes(ext)
+          const thumb = isImage && obj.url ? obj.url : null
+          selected.push({ file: pseudoFile, thumb, existing: true, id, url: obj.url })
+        })
+      }
+    } catch (e) {
+      console.warn('MultipleFileUploader existing files parse error', e)
+    }
 
     renderList()
   })

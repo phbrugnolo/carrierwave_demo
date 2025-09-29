@@ -1,27 +1,20 @@
 class DocumentsController < ApplicationController
-  before_action :set_document, only: %i[ show edit update destroy ]
+  before_action :set_document, only: %i[show edit update destroy]
 
-  # GET /documents or /documents.json
   def index
     @documents = Document.all
   end
 
-  # GET /documents/1 or /documents/1.json
-  def show
-  end
+  def show; end
 
-  # GET /documents/new
   def new
     @document = Document.new
   end
 
-  # GET /documents/1/edit
-  def edit
-  end
+  def edit; end
 
-  # POST /documents or /documents.json
   def create
-    @document = Document.new(document_params)
+    @document = Document.new(filtered_document_params)
 
     respond_to do |format|
       if @document.save
@@ -34,10 +27,39 @@ class DocumentsController < ApplicationController
     end
   end
 
-  # PATCH/PUT /documents/1 or /documents/1.json
   def update
+    attrs = filtered_document_params
+    new_files = attrs.delete(:files)
+
+    # Accept removed_files either at document[removed_files][] (preferred) or legacy document[files][removed_files][]
+    removed_ids = Array(params.dig(:document, :removed_files))
+    removed_ids = Array(params.dig(:document, :files, :removed_files)) if removed_ids.blank?
+    removed_ids = removed_ids.reject { |v| v.respond_to?(:blank?) ? v.blank? : v.nil? }
+
+    if removed_ids.any?
+      remaining = @document.files.reject { |u| removed_ids.include?(u.identifier) }
+    else
+      remaining = @document.files
+    end
+
+    @document.assign_attributes(attrs) if attrs.present?
+
+    final_files = new_files.present? ? (remaining + new_files) : remaining
+
+    final_files = final_files.uniq do |u|
+      if u.respond_to?(:identifier) && u.identifier.present?
+        u.identifier
+      elsif u.respond_to?(:original_filename)
+        "#{u.original_filename}-#{(u.size rescue 0)}"
+      else
+        u.object_id
+      end
+    end
+
+    @document.files = final_files
+
     respond_to do |format|
-      if @document.update(document_params)
+      if @document.save
         format.html { redirect_to @document, notice: "Document was successfully updated.", status: :see_other }
         format.json { render :show, status: :ok, location: @document }
       else
@@ -47,10 +69,8 @@ class DocumentsController < ApplicationController
     end
   end
 
-  # DELETE /documents/1 or /documents/1.json
   def destroy
     @document.destroy!
-
     respond_to do |format|
       format.html { redirect_to documents_path, notice: "Document was successfully destroyed.", status: :see_other }
       format.json { head :no_content }
@@ -58,13 +78,25 @@ class DocumentsController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_document
-      @document = Document.find(params.expect(:id))
-    end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_document
+    @document = Document.find(params.expect(:id))
+  end
 
-    # Only allow a list of trusted parameters through.
-    def document_params
-      params.expect(document: [ { files: [] } ])
-    end
+  # Only allow a list of trusted parameters through.
+  def document_params
+    params.expect(document: [ { files: [] } ])
+  end
+
+  def filtered_document_params
+    raw = document_params
+
+    files = Array(raw[:files])
+            .reject { |f| f.respond_to?(:blank?) ? f.blank? : f.nil? }
+            .select { |f| f.is_a?(ActionDispatch::Http::UploadedFile) }
+
+    raw[:files] = files if files.any?
+    raw.delete(:files) if files.empty?
+    raw
+  end
 end
