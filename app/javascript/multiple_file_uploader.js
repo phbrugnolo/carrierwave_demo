@@ -1,11 +1,11 @@
 // MultipleFileUploader
 // Enhances the custom SimpleForm input rendered by MultipleFileUploaderInput
 // Requires devextreme (installed via npm) assets to be available.
-// It mounts a dxFileUploader widget and keeps a hidden native input updated so
+// It mounts a FileUploader widget and keeps a hidden native input updated so
 // Rails / CarrierWave receives params as usual.
 
 import 'devextreme/dist/css/dx.light.css'
-import dxFileUploader from 'devextreme/ui/file_uploader'
+import FileUploader from 'devextreme/ui/file_uploader'
 import notify from 'devextreme/ui/notify'
 import Button from 'devextreme/ui/button'
 
@@ -52,6 +52,28 @@ export const MultipleFileUploader = () => {
       selected.forEach((entry, idx) => {
         const card = document.createElement('div')
         card.className = 'mf-file-card'
+        // Preview area
+        const preview = document.createElement('div')
+        preview.className = 'mf-preview'
+        const ext = fileExt(entry.file.name)
+        if (entry.thumb) {
+          const img = document.createElement('img')
+          img.src = entry.thumb
+          img.alt = entry.file.name
+          img.className = 'mf-thumb'
+          preview.appendChild(img)
+        } else {
+          const span = document.createElement('div')
+          span.className = 'mf-icon'
+          // Choose a FontAwesome icon class based on extension
+          let iconClass = 'fa-file'
+          if (['jpg','jpeg','png','gif','webp'].includes(ext)) iconClass = 'fa-file-image'
+          else if (['pdf'].includes(ext)) iconClass = 'fa-file-pdf'
+          else if (['doc','docx'].includes(ext)) iconClass = 'fa-file-word'
+          else if (['txt','md','rtf'].includes(ext)) iconClass = 'fa-file-lines'
+          span.innerHTML = `<i class="fa-solid ${iconClass}"></i>`
+          preview.appendChild(span)
+        }
         const name = document.createElement('div')
         name.className = 'mf-name'
         name.textContent = entry.file.name
@@ -60,14 +82,16 @@ export const MultipleFileUploader = () => {
         size.textContent = fmtBytes(entry.file.size)
         const removeBtn = document.createElement('button')
         removeBtn.type = 'button'
-        removeBtn.className = 'btn btn-sm btn-outline-danger'
-        removeBtn.innerHTML = 'Remove'
+        removeBtn.className = 'btn btn-sm btn-outline-danger mf-remove'
+        removeBtn.setAttribute('aria-label', 'Remove file')
+        removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>'
         removeBtn.addEventListener('click', () => {
           if (entry.thumb) URL.revokeObjectURL(entry.thumb)
           selected.splice(idx, 1)
           syncHiddenInput()
           renderList()
         })
+        card.appendChild(preview)
         card.appendChild(name)
         card.appendChild(size)
         card.appendChild(removeBtn)
@@ -87,7 +111,10 @@ export const MultipleFileUploader = () => {
         pending.push(f)
       }
       if (warnings.length) toast(warnings.join(' • '), 'warning')
-      pending.forEach(f => selected.push({ file: f }))
+      pending.forEach(f => {
+        const thumb = f.type.startsWith('image/') ? URL.createObjectURL(f) : null
+        selected.push({ file: f, thumb })
+      })
       if (pending.length) {
         syncHiddenInput()
         renderList()
@@ -95,7 +122,7 @@ export const MultipleFileUploader = () => {
     }
 
     // Initialize dxFileUploader widget
-    const uploader = new dxFileUploader(mountEl, {
+    const uploader = new FileUploader(mountEl, {
       multiple: true,
       selectButtonText: 'Select files',
       labelText: 'Drag & drop or click',
@@ -103,14 +130,14 @@ export const MultipleFileUploader = () => {
       uploadMode: 'useForm',
       onValueChanged(e) {
         addFiles(e.value || [])
-        try { uploader.option('value', []) } catch (_) {}
+        try { uploader.option('value', []) } catch (_) { }
       }
     })
 
     // Clear button
     const clearBtnEl = document.createElement('div')
     actionsEl.appendChild(clearBtnEl)
-    const clearBtn = new Button(clearBtnEl, {
+    new Button(clearBtnEl, {
       text: 'Clear',
       stylingMode: 'outlined',
       onClick() {
@@ -121,20 +148,7 @@ export const MultipleFileUploader = () => {
       }
     })
 
-    // Basic styles (scoped minimal inline) – could be moved to SCSS
-    const styleId = 'mf-uploader-styles'
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style')
-      style.id = styleId
-      style.textContent = `
-        .multiple-file-uploader { border:1px solid #e5e5e5; padding:12px; border-radius:6px; margin-bottom:1rem; }
-        .multiple-file-uploader .uploader-files-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; margin-top:12px; }
-        .multiple-file-uploader .mf-file-card { border:1px solid #ddd; border-radius:4px; padding:6px; display:flex; flex-direction:column; gap:4px; font-size:0.85rem; }
-        .multiple-file-uploader .mf-name { font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .multiple-file-uploader .mf-size { color:#666; }
-      `
-      document.head.appendChild(style)
-    }
+    // Styles now provided via SCSS (app/assets/stylesheets/multiple_file_uploader.scss)
 
     renderList()
   })
