@@ -1,10 +1,56 @@
-// Styles for MultipleFileUploader component (migrated from inline JS)
-
 .multiple-file-uploader {
     border: 1px solid #e5e5e5;
     padding: 14px;
     border-radius: 8px;
     margin-bottom: 1rem;
+}
+
+.multiple-file-uploader .mf-dropzone {
+    border: 2px dashed #b9b9b9;
+    border-radius: 8px;
+    padding: 28px 20px;
+    text-align: center;
+    background: #fafafa;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    position: relative;
+    outline: none;
+}
+
+.multiple-file-uploader .mf-dropzone:hover {
+    background: #f2f9ff;
+    border-color: #5aa6e8;
+}
+
+.multiple-file-uploader .mf-dropzone:focus-visible {
+    box-shadow: 0 0 0 3px rgba(38, 132, 255, 0.35);
+    border-color: #2684ff;
+}
+
+.multiple-file-uploader .mf-dropzone.dragover {
+    background: #e4f4ff;
+    border-color: #2684ff;
+}
+
+.multiple-file-uploader .mf-dropzone .mf-dropzone-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+}
+
+.multiple-file-uploader .mf-dz-icon {
+    font-size: 2.6rem;
+    color: #2684ff;
+}
+
+.multiple-file-uploader .mf-dz-text {
+    font-weight: 600;
+}
+
+.multiple-file-uploader .mf-dz-hint {
+    font-size: 0.75rem;
+    color: #666;
 }
 
 .multiple-file-uploader .uploader-files-list {
@@ -61,7 +107,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     width: 100%;
-    padding-right: 34px; // space for remove button
+    padding-right: 34px;
 }
 
 .multiple-file-uploader .mf-size {

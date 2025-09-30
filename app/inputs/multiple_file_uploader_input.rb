@@ -20,12 +20,23 @@ class MultipleFileUploaderInput < SimpleForm::Inputs::Base
     data_attrs[:existing_files] = existing_files.to_json if existing_files.any?
 
     template.content_tag(:div, class: "multiple-file-uploader", data: data_attrs) do
-      hidden_input     = @builder.file_field(attribute_name, input_html_options.merge(data: { 'input-target': true }))
+      hidden_input = @builder.file_field(attribute_name, input_html_options.merge(data: { 'input-target': true }))
       widget_container = template.content_tag(:div, "", class: "dx-uploader-mount")
-      actions          = template.content_tag(:div, "", class: "uploader-actions")
-      file_list        = template.content_tag(:div, "", class: "uploader-files-list", data: { 'list-target': true })
 
-      hidden_input.concat(widget_container).concat(actions).concat(file_list)
+      dropzone = template.content_tag(:div, class: "mf-dropzone", tabindex: 0, role: "button", 'aria-label': "Upload files", data: { 'dropzone-target': true }) do
+        template.content_tag(:div, class: "mf-dropzone-inner") do
+          template.safe_join([
+            template.content_tag(:div, '<i class="fa-solid fa-cloud-arrow-up"></i>'.html_safe, class: "mf-dz-icon"),
+            template.content_tag(:div, I18n.t("uploader.drop_or_click", default: "Drag & drop files here or click to select"), class: "mf-dz-text"),
+            template.content_tag(:div, I18n.t("uploader.limitations", default: "Up to 10 files • 5MB each"), class: "mf-dz-hint")
+          ])
+        end
+      end
+
+      actions = template.content_tag(:div, "", class: "uploader-actions")
+      file_list = template.content_tag(:div, "", class: "uploader-files-list", data: { 'list-target': true })
+
+      hidden_input.concat(widget_container).concat(dropzone).concat(actions).concat(file_list)
     end
   end
 end

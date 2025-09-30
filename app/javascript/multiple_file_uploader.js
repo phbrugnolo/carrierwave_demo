@@ -1,6 +1,3 @@
-// MultipleFileUploader (com suporte a removed_files[])
-
-import 'devextreme/dist/css/dx.light.css'
 import FileUploader from 'devextreme/ui/file_uploader'
 import notify from 'devextreme/ui/notify'
 import Button from 'devextreme/ui/button'
@@ -33,6 +30,7 @@ export const MultipleFileUploader = () => {
 
     const hiddenInput = root.querySelector('[data-input-target]')
     const mountEl = root.querySelector('.dx-uploader-mount')
+    const dropZoneEl = root.querySelector('[data-dropzone-target]')
     const listEl = root.querySelector('[data-list-target]')
     const actionsEl = root.querySelector('.uploader-actions')
 
@@ -147,11 +145,61 @@ export const MultipleFileUploader = () => {
       labelText: 'Drag & drop or click',
       accept: ALLOWED_EXT.map(e => '.' + e).join(','),
       uploadMode: 'useForm',
+      dropZone: dropZoneEl || undefined,
+      dialogTrigger: dropZoneEl || undefined,
       onValueChanged(e) {
         addFiles(e.value || [])
         try { uploader.option('value', []) } catch (_) { }
       }
     })
+
+    if (dropZoneEl) {
+      const dz = dropZoneEl
+      const dragClass = 'dragover'
+
+      const isFileDrag = (ev) => {
+        return ev.dataTransfer && Array.from(ev.dataTransfer.types || []).includes('Files')
+      }
+
+      const onDragEnter = (ev) => {
+        if (!isFileDrag(ev)) return
+        ev.preventDefault()
+        dz.classList.add(dragClass)
+      }
+      const onDragOver = (ev) => {
+        if (!isFileDrag(ev)) return
+        ev.preventDefault()
+        ev.dataTransfer.dropEffect = 'copy'
+      }
+      const onDragLeave = (ev) => {
+        if (!isFileDrag(ev)) return
+        if (ev.target === dz) {
+          dz.classList.remove(dragClass)
+        }
+      }
+      const onDrop = (ev) => {
+        if (!isFileDrag(ev)) return
+        ev.preventDefault()
+        dz.classList.remove(dragClass)
+        const files = ev.dataTransfer.files
+        if (files && files.length) addFiles(files)
+      }
+
+      dz.addEventListener('dragenter', onDragEnter)
+      dz.addEventListener('dragover', onDragOver)
+      dz.addEventListener('dragleave', onDragLeave)
+      dz.addEventListener('drop', onDrop)
+
+      // Keyboard activation (Space/Enter triggers native dialog)
+      dz.addEventListener('keydown', (e) => {
+        if (['Enter', ' '].includes(e.key)) {
+          e.preventDefault()
+          // Use underlying hidden input click
+          const inputEl = mountEl.querySelector('input[type="file"]')
+          if (inputEl) inputEl.click()
+        }
+      })
+    }
 
     const clearBtnEl = document.createElement('div')
     actionsEl.appendChild(clearBtnEl)
