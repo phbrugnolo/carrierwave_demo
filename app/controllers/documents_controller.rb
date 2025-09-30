@@ -31,9 +31,11 @@ class DocumentsController < ApplicationController
     attrs = filtered_document_params
     new_files = attrs.delete(:files)
 
-    # Accept removed_files either at document[removed_files][] (preferred) or legacy document[files][removed_files][]
     removed_ids = Array(params.dig(:document, :removed_files))
-    removed_ids = Array(params.dig(:document, :files, :removed_files)) if removed_ids.blank?
+      if removed_ids.blank?
+        files_node = params[:document].is_a?(ActionController::Parameters) ? params[:document][:files] : nil
+        removed_ids = Array(files_node[:removed_files] || files_node["removed_files"]) if files_node.is_a?(ActionController::Parameters) || files_node.is_a?(Hash)
+      end
     removed_ids = removed_ids.reject { |v| v.respond_to?(:blank?) ? v.blank? : v.nil? }
 
     if removed_ids.any?
@@ -90,6 +92,7 @@ class DocumentsController < ApplicationController
 
   def filtered_document_params
     raw = document_params
+    raw = { files: raw } if raw.is_a?(Array)
 
     files = Array(raw[:files])
             .reject { |f| f.respond_to?(:blank?) ? f.blank? : f.nil? }

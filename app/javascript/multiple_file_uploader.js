@@ -22,7 +22,7 @@ const removedParamName = (hiddenInputName) => {
   const m = hiddenInputName.match(/^([^\[]+)\[([^\]]+)\](?:\[\])?$/)
   if (!m) return 'removed_files[]'
   const model = m[1]
-  const attr  = m[2]
+  const attr = m[2]
   return `${model}[removed_${attr}][]`
 }
 
@@ -32,17 +32,15 @@ export const MultipleFileUploader = () => {
     root.dataset.enhanced = 'true'
 
     const hiddenInput = root.querySelector('[data-input-target]')
-    console.log(removedParamName(hiddenInput.name))
     const mountEl = root.querySelector('.dx-uploader-mount')
     const listEl = root.querySelector('[data-list-target]')
     const actionsEl = root.querySelector('.uploader-actions')
 
-    // Container para inputs hidden de removed_files
     const removedContainer = document.createElement('div')
     removedContainer.style.display = 'none'
     root.appendChild(removedContainer)
 
-    let selected = [] // { file, thumb, existing, id }
+    let selected = []
 
     const syncHiddenInput = () => {
       const dt = new DataTransfer()
@@ -61,6 +59,7 @@ export const MultipleFileUploader = () => {
       selected.forEach((entry, idx) => {
         const card = document.createElement('div')
         card.className = 'mf-file-card'
+
         const preview = document.createElement('div')
         preview.className = 'mf-preview'
         const ext = fileExt(entry.file.name)
@@ -75,9 +74,9 @@ export const MultipleFileUploader = () => {
           span.className = 'mf-icon'
           let iconClass = 'fa-file'
           if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) iconClass = 'fa-file-image'
-            else if (['pdf'].includes(ext)) iconClass = 'fa-file-pdf'
-            else if (['doc', 'docx'].includes(ext)) iconClass = 'fa-file-word'
-            else if (['txt', 'md', 'rtf'].includes(ext)) iconClass = 'fa-file-lines'
+          else if (['pdf'].includes(ext)) iconClass = 'fa-file-pdf'
+          else if (['doc', 'docx'].includes(ext)) iconClass = 'fa-file-word'
+          else if (['txt', 'md', 'rtf'].includes(ext)) iconClass = 'fa-file-lines'
           span.innerHTML = `<i class="fa-solid ${iconClass}"></i>`
           preview.appendChild(span)
         }
@@ -89,6 +88,7 @@ export const MultipleFileUploader = () => {
         const size = document.createElement('div')
         size.className = 'mf-size'
         size.textContent = fmtBytes(entry.file.size)
+
         const removeBtn = document.createElement('button')
         removeBtn.type = 'button'
         removeBtn.className = 'btn btn-sm btn-outline-danger mf-remove'
@@ -97,17 +97,19 @@ export const MultipleFileUploader = () => {
         removeBtn.addEventListener('click', () => {
           if (entry.thumb && entry.thumb.startsWith('blob:')) URL.revokeObjectURL(entry.thumb)
 
-            if (entry.existing && entry.id) {
-              const hidden = document.createElement('input')
-              hidden.type = 'hidden'
-              hidden.name = removedParamName(hiddenInput.name)
-              hidden.value = entry.id
-              removedContainer.appendChild(hidden)
+          if (entry.existing && entry.id) {
+            const removeInput = document.createElement('input')
+            removeInput.type = 'hidden'
+            removeInput.name = removedParamName(hiddenInput.name)
+            removeInput.value = entry.id
+            if (![...removedContainer.querySelectorAll('input')].some(i => i.value === removeInput.value)) {
+              removedContainer.appendChild(removeInput)
             }
+          }
 
-            selected.splice(idx, 1)
-            syncHiddenInput()
-            renderList()
+          selected.splice(idx, 1)
+          syncHiddenInput()
+          renderList()
         })
 
         card.appendChild(preview)
@@ -116,7 +118,6 @@ export const MultipleFileUploader = () => {
         card.appendChild(removeBtn)
         listEl.appendChild(card)
       })
-      toast(`Selected: ${selected.length} – ${fmtBytes(total)}`)
     }
 
     const addFiles = (files) => {
@@ -129,7 +130,7 @@ export const MultipleFileUploader = () => {
         if (selected.some(s => s.file.name === f.name && s.file.size === f.size)) { warnings.push(`Duplicate: ${f.name}`); continue }
         pending.push(f)
       }
-      if (warnings.length) toast(warnings.join(' • '), 'warning')
+      if (warnings.length) { toast(warnings.join(' • '), 'warning'); }
       pending.forEach(f => {
         const thumb = f.type.startsWith('image/') ? URL.createObjectURL(f) : null
         selected.push({ file: f, thumb })
@@ -148,18 +149,32 @@ export const MultipleFileUploader = () => {
       uploadMode: 'useForm',
       onValueChanged(e) {
         addFiles(e.value || [])
-        try { uploader.option('value', []) } catch (_) {}
+        try { uploader.option('value', []) } catch (_) { }
       }
     })
 
     const clearBtnEl = document.createElement('div')
     actionsEl.appendChild(clearBtnEl)
+
+    const ensureRemoveInput = (id) => {
+      if (!id) return
+      const name = removedParamName(hiddenInput.name)
+      if (![...removedContainer.querySelectorAll('input')].some(i => i.value === id)) {
+        const input = document.createElement('input')
+        input.type = 'hidden'
+        input.name = name
+        input.value = id
+        removedContainer.appendChild(input)
+      }
+    }
+
     new Button(clearBtnEl, {
       text: 'Clear',
       stylingMode: 'outlined',
       onClick() {
+        selected.filter(e => e.existing).forEach(e => ensureRemoveInput(e.id))
         selected.filter(e => !e.existing && e.thumb && e.thumb.startsWith('blob:')).forEach(e => URL.revokeObjectURL(e.thumb))
-        selected = selected.filter(e => e.existing)
+        selected = []
         syncHiddenInput()
         renderList()
       }
@@ -175,7 +190,7 @@ export const MultipleFileUploader = () => {
           const pseudoFile = new File([new Blob()], name, { type: 'application/octet-stream' })
           Object.defineProperty(pseudoFile, 'size', { value: obj.size || 0 })
           const ext = fileExt(name)
-          const isImage = ['jpg','jpeg','png','gif','webp'].includes(ext)
+          const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)
           const thumb = isImage && obj.url ? obj.url : null
           selected.push({ file: pseudoFile, thumb, existing: true, id, url: obj.url })
         })
