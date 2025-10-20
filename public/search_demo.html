@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registrar Participantes</title>
+    <!-- Bootstrap 5 CSS (CDN) -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+    
+    <!-- Estilos customizados -->
+    <style>
+      .hover-bg-light:hover {
+        background-color: #f8f9fa !important;
+      }
+      
+      #sugestoesPessoas .cursor-pointer:hover {
+        background-color: #e9ecef !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container my-4">
+      <!-- Título do formulário -->
+      <h1 class="mb-4">Registrar Participantes</h1>
+      
+      <form>
+        <!-- Registro de Participação -->
+        <div class="mb-4">
+          <label class="form-label h5">Registro de Participação</label>
+          <div class="mb-3 position-relative">
+            <input type="text" class="form-control" id="pesquisaPessoa" placeholder="Pesquisar por nome...">
+            <!-- Lista de sugestões -->
+            <div id="sugestoesPessoas" class="position-absolute w-100 bg-white border border-top-0 shadow-sm" style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;">
+              <!-- Sugestões aparecerão aqui -->
+            </div>
+          </div>
+
+          <!-- Lista de pessoas selecionadas -->
+          <div id="pessoasSelecionadas" class="border rounded p-3 mb-3" style="min-height: 100px;">
+            <small class="text-muted">Pessoas selecionadas aparecerão aqui</small>
+          </div>
+        </div>
+
+        <hr />
+
+        <!-- Botões de ação -->
+        <div class="text-end">
+          <button type="button" class="btn btn-secondary me-2" onclick="confirmarCancelamento()">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Registrar participantes</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Bootstrap 5 JS (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+      // Lista simulada de pessoas
+      const pessoasDisponiveis = [
+        { id: 1, nome: "João Silva", idade: 25, tipo: "Beneficiário", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 2, nome: "Maria Santos", idade: 32, tipo: "Ex-Beneficiário", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 3, nome: "Ana Costa", idade: 18, tipo: "Completo", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 4, nome: "Carlos Pereira", idade: 45, tipo: "Completo", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 5, nome: "Fernanda Lima", idade: 28, tipo: "Beneficiário", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 6, nome: "Roberto Oliveira", idade: 38, tipo: "Ex-Beneficiário", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 7, nome: "Lucas Oliveira", idade: 22, tipo: "Completo", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 8, nome: "Beatriz Silva", idade: 16, tipo: "Beneficiário", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" },
+        { id: 9, nome: "Pedro Santos", idade: 30, tipo: "Beneficiário", foto: "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM5N2E5YmQiLz4KPHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSI+CjxwYXRoIGQ9Ik0yMCAyNEMxNy4yMzg2IDI0IDE1IDIxLjc2MTQgMTUgMTlDMTUgMTYuMjM4NiAxNy4yMzg2IDE0IDIwIDE0QzIyLjc2MTQgMTQgMjUgMTYuMjM4NiAyNSAxOUMyNSAyMS43NjE0IDIyLjc2MTQgMjQgMjAgMjRaTTIwIDI2QzI0LjQxODMgMjYgMjggMjcuNzkwOSAyOCAzMFYzMkgxMlYzMEMxMiAyNy43OTA5IDE1LjU4MTcgMjYgMjAgMjZaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4KPC9zdmc+" }
+      ];
+
+      let pessoasSelecionadas = [];
+      let pessoasFiltradas = [...pessoasDisponiveis];
+
+      // Função para obter a classe CSS da tag do tipo
+      function obterClasseTipo(tipo) {
+        switch(tipo) {
+          case 'Beneficiário':
+            return 'bg-success';
+          case 'Ex-Beneficiário':
+            return 'bg-secondary';
+          case 'Completo':
+            return 'bg-info';
+          default:
+            return 'bg-secondary';
+        }
+      }
+
+      // Inicializar grid de pessoas
+      function inicializarGridPessoas() {
+        // Não exibir nada inicialmente
+      }
+
+      // Implementar pesquisa de pessoas
+      document.getElementById('pesquisaPessoa').addEventListener('input', () => {
+        const termo = this.value.toLowerCase();
+        const sugestoes = document.getElementById('sugestoesPessoas');
+        
+        const resultados = pessoasDisponiveis.filter(pessoa => 
+          pessoa.nome.toLowerCase().includes(termo) && 
+          !pessoasSelecionadas.find(p => p.id === pessoa.id)
+        );
+
+        if (resultados.length > 0) {
+          sugestoes.innerHTML = resultados.map(pessoa => 
+            `<div class="p-3 border-bottom cursor-pointer hover-bg-light d-flex align-items-center" onclick="adicionarPessoa(${pessoa.id}, '${pessoa.nome}', ${pessoa.idade}, '${pessoa.tipo}', '${pessoa.foto}')" style="cursor: pointer;">
+              <img src="${pessoa.foto}" alt="Foto" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <strong>${pessoa.nome}</strong>
+                    <div class="text-muted small">${pessoa.idade} anos</div>
+                  </div>
+                  <span class="badge ${obterClasseTipo(pessoa.tipo)} text-white">${pessoa.tipo}</span>
+                </div>
+              </div>
+            </div>`
+          ).join('');
+          sugestoes.style.display = 'block';
+        } else {
+          sugestoes.style.display = 'none';
+        }
+      });
+
+      // Mostrar todas as pessoas ao clicar no campo
+      document.getElementById('pesquisaPessoa').addEventListener('focus', () => {
+        const termo = this.value.toLowerCase();
+        const sugestoes = document.getElementById('sugestoesPessoas');
+        
+        const resultados = pessoasDisponiveis.filter(pessoa => 
+          pessoa.nome.toLowerCase().includes(termo) && 
+          !pessoasSelecionadas.find(p => p.id === pessoa.id)
+        );
+
+        if (resultados.length > 0) {
+          sugestoes.innerHTML = resultados.map(pessoa => 
+            `<div class="p-3 border-bottom cursor-pointer hover-bg-light d-flex align-items-center" onclick="adicionarPessoa(${pessoa.id}, '${pessoa.nome}', ${pessoa.idade}, '${pessoa.tipo}', '${pessoa.foto}')" style="cursor: pointer;">
+              <img src="${pessoa.foto}" alt="Foto" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <strong>${pessoa.nome}</strong>
+                    <div class="text-muted small">${pessoa.idade} anos</div>
+                  </div>
+                  <span class="badge ${obterClasseTipo(pessoa.tipo)} text-white">${pessoa.tipo}</span>
+                </div>
+              </div>
+            </div>`
+          ).join('');
+          sugestoes.style.display = 'block';
+        }
+      });
+
+      // Esconder sugestões quando clicar fora
+      document.addEventListener('click', function(event) {
+        const pesquisa = document.getElementById('pesquisaPessoa');
+        const sugestoes = document.getElementById('sugestoesPessoas');
+        
+        if (!pesquisa.contains(event.target) && !sugestoes.contains(event.target)) {
+          sugestoes.style.display = 'none';
+        }
+      });
+
+      // Adicionar pessoa à lista
+      function adicionarPessoa(id, nome, idade, tipo, foto) {
+        const pessoa = { id, nome, idade, tipo, foto };
+        pessoasSelecionadas.push(pessoa);
+        
+        // Limpar campo de pesquisa e sugestões
+        document.getElementById('pesquisaPessoa').value = '';
+        document.getElementById('sugestoesPessoas').style.display = 'none';
+        
+        // Atualizar lista visual
+        atualizarListaPessoas();
+      }
+
+      // Remover pessoa da lista
+      function removerPessoa(id) {
+        pessoasSelecionadas = pessoasSelecionadas.filter(p => p.id !== id);
+        atualizarListaPessoas();
+      }
+
+      // Atualizar display da lista de pessoas selecionadas
+      function atualizarListaPessoas() {
+        const container = document.getElementById('pessoasSelecionadas');
+        
+        if (pessoasSelecionadas.length === 0) {
+          container.innerHTML = '<small class="text-muted">Pessoas selecionadas aparecerão aqui</small>';
+        } else {
+          container.innerHTML = `
+            <div class="row">
+              ${pessoasSelecionadas.map(pessoa => 
+                `<div class="col-12 col-md-6 col-lg-4 mb-3">
+                  <div class="border rounded p-3 h-100">
+                    <div class="d-flex align-items-center mb-2">
+                      <img src="${pessoa.foto}" alt="Foto" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                      <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start">
+                          <div>
+                            <strong>${pessoa.nome}</strong>
+                            <div class="text-muted small">${pessoa.idade} anos</div>
+                          </div>
+                          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerPessoa(${pessoa.id})">
+                            <i class="bi bi-x"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="text-center">
+                      <span class="badge ${obterClasseTipo(pessoa.tipo)} text-white">${pessoa.tipo}</span>
+                    </div>
+                  </div>
+                </div>`
+              ).join('')}
+            </div>
+          `;
+        }
+      }
+
+      // Inicializar ao carregar a página
+      document.addEventListener('DOMContentLoaded', () => {
+        inicializarGridPessoas();
+      });
+
+
+    </script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
 class Document < ApplicationRecord
   mount_uploaders :files, AttachmentUploader
-  belongs_to :person
+  has_and_belongs_to_many :person
 end

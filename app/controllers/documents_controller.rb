@@ -87,7 +87,7 @@ class DocumentsController < ApplicationController
 
   # Only allow a list of trusted parameters through.
   def document_params
-    params.expect(document: [ { files: [] } ])
+    params.expect(document: [ :person_id, { files: [] } ])
   end
 
   def filtered_document_params

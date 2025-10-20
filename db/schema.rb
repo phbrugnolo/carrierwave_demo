@@ -10,16 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_20_193337) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_20_194054) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "documents", force: :cascade do |t|
     t.jsonb "files"
-    t.bigint "person_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["person_id"], name: "index_documents_on_person_id"
+  end
+
+  create_table "documents_people", id: false, force: :cascade do |t|
+    t.bigint "person_id", null: false
+    t.bigint "document_id", null: false
+    t.index ["document_id", "person_id"], name: "index_documents_people_on_document_id_and_person_id"
+    t.index ["person_id", "document_id"], name: "index_documents_people_on_person_id_and_document_id"
   end
 
   create_table "people", force: :cascade do |t|
@@ -28,6 +33,4 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_20_193337) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
-
-  add_foreign_key "documents", "people"
 end
