@@ -2,6 +2,8 @@
 
 one:
   files: 
+  person: one
 
 two:
   files: 
+  person: two

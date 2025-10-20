@@ -12,5 +12,6 @@
   <% end %>
 
   <%= f.input :files, as: :multiple_file_uploader %>
+  <%= f.association :person %>
   <%= f.button :submit %>
 <% end %>

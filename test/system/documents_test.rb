@@ -15,6 +15,7 @@ class DocumentsTest < ApplicationSystemTestCase
     click_on "New document"
 
     fill_in "Files", with: @document.files
+    fill_in "Person", with: @document.person_id
     click_on "Create Document"
 
     assert_text "Document was successfully created"
@@ -26,6 +27,7 @@ class DocumentsTest < ApplicationSystemTestCase
     click_on "Edit this document", match: :first
 
     fill_in "Files", with: @document.files
+    fill_in "Person", with: @document.person_id
     click_on "Update Document"
 
     assert_text "Document was successfully updated"
